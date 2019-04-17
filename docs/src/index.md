@@ -9,7 +9,7 @@ using Econometrics, CSV, RDatasets
 ## Continuous Response Models
 
 ```@example Main
-data = dataset("Ecdat", "Crime")
+data = RDatasets.dataset("Ecdat", "Crime")
 ```
 
 ### Pooling
@@ -71,7 +71,7 @@ model = fit(EconometricModel,
 ## Ordinal Response Model
 
 ```@example Main
-data = dataset("Ecdat", "Kakadu")[[:RecParks, :Sex, :Age, :Schooling]]
+data = RDatasets.dataset("Ecdat", "Kakadu")[[:RecParks, :Sex, :Age, :Schooling]]
 data.RecParks = convert(Vector{Int}, data.RecParks)
 data.RecParks = levels!(categorical(data.RecParks, ordered = true), collect(1:5))
 model = fit(EconometricModel,
