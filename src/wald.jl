@@ -7,7 +7,12 @@ function wald(obj::EconometricModel)
 	Bread = R * β
 	Meat = inv(bunchkaufman!(Hermitian(R * V * R')))
 	W = (Bread' * Meat * Bread) / size(R, 1)
-	F = FDist(size(R, 1), rdf)
-	p = ccdf(F_Dist, Wald)
+	if size(R, 1) > 0
+		F = FDist(size(R, 1), rdf)
+		p = ccdf(F, W)
+	else
+		F = FDist(1, 1)
+		p = NaN
+	end
 	W, F, p
 end

@@ -66,7 +66,7 @@ end
     end
     output
 end
-transform(estimator::Estimator, wts::FrequencyWeights) = wts
+transform(estimator::LinearModelEstimators, wts::FrequencyWeights) = wts
 transform(estimator::BetweenEstimator, wts::FrequencyWeights) =
     FrequencyWeights(Fill(1, length(estimator.groups)))
 transform(estimator::ContinuousResponse,

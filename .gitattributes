@@ -1,2 +1,6 @@
-# Auto detect text files and perform LF normalization
 * text=auto
+*.jl.cov
+*.jl.*.cov
+*.jl.mem
+docs/build/
+docs/site/

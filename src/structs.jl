@@ -1,12 +1,13 @@
 abstract type EconometricsModel <: RegressionModel end
 implicit_intercept(::Type{<:EconometricsModel}) = true
 # Estimators
-abstract type Estimator end
-struct ContinuousResponse <: Estimator
+abstract type ModelEstimator end
+abstract type LinearModelEstimators <: ModelEstimator end
+struct ContinuousResponse <: LinearModelEstimators
     groups::Vector{Vector{Vector{Int}}}
 end
 show(io::IO, estimator::ContinuousResponse) = println(io, "Continuous Response Model")
-struct BetweenEstimator <: Estimator
+struct BetweenEstimator <: LinearModelEstimators
     effect::Symbol
     groups::Vector{Vector{Int}}
 end
@@ -25,7 +26,7 @@ function show(io::IO, estimator::BetweenEstimator)
         end        
     end
 end
-struct RandomEffectEstimator <: Estimator
+struct RandomEffectEstimator <: LinearModelEstimators
     pid::Tuple{Symbol,Vector{Vector{Int}}}
     tid::Tuple{Symbol,Vector{Vector{Int}}}
     idiosyncratic::Float64
@@ -67,4 +68,30 @@ function show(io::IO, estimator::RandomEffectEstimator)
     println(io, "individual error component: $(round(individual, digits = 4))")
     println(io, "idiosyncratic error component: $(round(idiosyncratic, digits = 4))")
     println(io, "ρ: $(round(individual^2 / (individual^2 + idiosyncratic^2), digits = 4))")
+end
+struct NominalResponse{T} <: ModelEstimator
+    categories::Vector{T}
+    function NominalResponse(obj::ContrastsMatrix)
+        categories = isnothing(obj.contrasts.base) ?
+            obj.levels :
+            union(vcat(obj.contrasts.base, obj.levels))
+        new{eltype(categories)}(categories)
+    end
+end
+function show(io::IO, estimator::NominalResponse)
+    println(io, "Probability Model for Nominal Response")
+    println(io, "Categories: $(join(estimator.categories, ", "))")
+end
+struct OrdinalResponse{T} <: ModelEstimator
+    categories::Vector{T}
+    function OrdinalResponse(obj::ContrastsMatrix)
+        categories = isnothing(obj.contrasts.levels) ?
+            obj.levels :
+            obj.contrasts.levels
+        new{eltype(categories)}(categories)
+    end
+end
+function show(io::IO, estimator::OrdinalResponse)
+    println(io, "Probability Model for Ordinal Response")
+    println(io, "Categories: $(join(estimator.categories, " < "))")
 end

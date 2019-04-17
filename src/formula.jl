@@ -5,7 +5,7 @@ function between end
 
 function decompose(f::FormulaTerm, data::AbstractDataFrame, contrasts::Dict{Symbol})
     data = dropmissing(data[termvars(f)], disallowmissing = true)
-    rhs = collect(f.rhs)
+    rhs = isa(f.rhs, Tuple) ? collect(f.rhs) : [f.rhs]
     absorbed = findall(t -> isa(t, FunctionTerm{typeof(absorb)}), rhs)
     if isempty(absorbed)
         absorbed = (Vector{Symbol}(), Vector{Vector{Vector{Int}}}())
@@ -57,15 +57,15 @@ function decompose(f::FormulaTerm, data::AbstractDataFrame, contrasts::Dict{Symb
     else
         throw(ArgumentError("There can only be one weight variable"))
     end
+    exo_rhs = filter(t -> !(isa(t, FormulaTerm) ||
+                     isa(t, FunctionTerm{<:Union{<:typeof(absorb),
+                                                 <:typeof(PID),
+                                                 <:typeof(TID),
+                                                 <:typeof(weights),
+                                                 <:typeof(between)}})),
+                    rhs)
     exogenous = FormulaTerm(f.lhs,
-                            filter(t -> !(isa(t, FormulaTerm) ||
-                                          isa(t, FunctionTerm{<:Union{<:typeof(absorb),
-                                                                      <:typeof(PID),
-                                                                      <:typeof(TID),
-                                                                      <:typeof(weights),
-                                                                      <:typeof(between)}})),
-                                   rhs) |>
-                            Tuple)
+                            isempty(exo_rhs) ? Tuple([ConstantTerm(1)]) : Tuple(exo_rhs))
     @assert length(terms(exogenous.lhs)) == 1 "Response should be a single variable"
     iv = findall(t -> isa(t, FormulaTerm), rhs)
     if length(iv) == 0
@@ -79,7 +79,15 @@ function decompose(f::FormulaTerm, data::AbstractDataFrame, contrasts::Dict{Symb
     f = apply_schema(f, sc)
     exogenous = apply_schema(exogenous, sc, EconometricsModel)
     iv = apply_schema(iv, sc)
-    y, X = modelcols(exogenous, data)
+    if isa(exogenous.lhs, CategoricalTerm)
+        y = data[exogenous.lhs.sym]
+        X = modelcols(exogenous.rhs, data)
+        if isordered(y)
+            X = X[:,2:end]
+        end
+    else
+        y, X = modelcols(exogenous, data)
+    end
     wts = isempty(wts) ? FrequencyWeights(Fill(1, size(y, 1))) : wts
     if !isa(iv.lhs, InterceptTerm)
         z, Z = modelcols(iv, data)
